@@ -18,11 +18,5 @@ services:
       - CLAMAV_PORT=${CLAMAV_PORT:-3310}
       - WEBHOOK_URL=${WEBHOOK_URL}
       - WEBHOOK_API_KEY=${WEBHOOK_API_KEY}
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
     restart: unless-stopped
 
