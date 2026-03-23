@@ -1,35 +1,35 @@
 # ClamAV API
 
-RESTful API для проверки файлов на вирусы с использованием ClamAV.
+RESTful API for file virus scanning using ClamAV.
 
-## Возможности
+## Features
 
-- Синхронное сканирование файлов (`/files/scan`)
-- Асинхронное сканирование с webhook уведомлениями (`/files/upload`)
-- Проверка здоровья сервиса (`/health`, `/ready`)
-- Prometheus метрики (`/metrics`)
-- Swagger UI (`/swagger`) и OpenAPI спецификация (`/swagger.yaml`)
-- Авторизация по API ключу
+- Synchronous file scanning (`/files/scan`)
+- Asynchronous scanning with webhook notifications (`/files/upload`)
+- Health checks (`/health`, `/ready`)
+- Prometheus metrics (`/metrics`)
+- Swagger UI (`/swagger`) and OpenAPI specification (`/swagger.yaml`)
+- API key authorization
 
-## Требования
+## Requirements
 
 - Go 1.26+
-- ClamAV (работающий в режиме TCP)
+- ClamAV (running in TCP mode)
 
-## Установка
+## Installation
 
 ```bash
-# Клонирование репозитория
+# Clone the repository
 git clone <repository-url>
 cd clamav-api
 
-# Запуск
+# Run
 go run ./cmd/server
 ```
 
-## Конфигурация
+## Configuration
 
-Создайте файл `configs/config.yaml`:
+Create a `configs/config.yaml` file:
 
 ```yaml
 app:
@@ -54,32 +54,32 @@ storage:
   temp_dir: "/tmp/clamav-api"
 ```
 
-### Переменные окружения
+### Environment Variables
 
-| Переменная | Описание | Значение по умолчанию |
-|------------|----------|----------------------|
-| `CONFIG_PATH` | Путь к config.yaml | `configs/config.yaml` |
+| Variable      | Description         | Default Value         |
+|---------------|---------------------|-----------------------|
+| `CONFIG_PATH` | Path to config.yaml | `configs/config.yaml` |
 
 ## API Endpoints
 
-### Health Check (без авторизации)
+### Health Check (no authorization)
 
 ```bash
 GET /health
 ```
 
-Ответ:
+Response:
 ```json
 {"status": "ok"}
 ```
 
-### Readiness Check (без авторизации)
+### Readiness Check (no authorization)
 
 ```bash
 GET /ready
 ```
 
-Ответ:
+Response:
 ```json
 {
   "status": "ok",
@@ -89,13 +89,13 @@ GET /ready
 }
 ```
 
-### ClamAV Info (без авторизации)
+### ClamAV Info (no authorization)
 
 ```bash
 GET /info
 ```
 
-### Синхронное сканирование (требуется API ключ)
+### Synchronous Scan (API key required)
 
 ```bash
 POST /files/scan
@@ -105,7 +105,7 @@ Content-Type: multipart/form-data
 file: <binary>
 ```
 
-Ответ:
+Response:
 ```json
 {
   "file_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -117,7 +117,7 @@ file: <binary>
 }
 ```
 
-### Асинхронная загрузка (требуется API ключ)
+### Asynchronous Upload (API key required)
 
 ```bash
 POST /files/upload
@@ -127,7 +127,7 @@ Content-Type: multipart/form-data
 file: <binary>
 ```
 
-Ответ (HTTP 202):
+Response (HTTP 202):
 ```json
 {
   "file_id": "550e8400-e29b-41d4-a716-446655440002",
@@ -140,7 +140,7 @@ file: <binary>
 
 ### Webhook Payload
 
-При асинхронном сканировании результат отправляется на настроенный URL:
+For asynchronous scanning, the result is sent to the configured URL:
 
 ```json
 {
@@ -153,25 +153,25 @@ file: <binary>
 }
 ```
 
-## Prometheus метрики
+## Prometheus Metrics
 
 ```bash
 GET /metrics
 ```
 
-Доступные метрики:
-- `clamav_http_requests_total` - счётчик HTTP запросов
-- `clamav_http_request_duration_seconds` - гистограмма времени обработки
-- `clamav_files_scanned_total` - счётчик проверенных файлов
-- `clamav_file_size_bytes` - гистограмма размеров файлов
+Available metrics:
+- `clamav_http_requests_total` - HTTP request counter
+- `clamav_http_request_duration_seconds` - request duration histogram
+- `clamav_files_scanned_total` - scanned files counter
+- `clamav_file_size_bytes` - file size histogram
 
 ## Docker
 
 ```bash
-# Сборка
+# Build
 docker build -t clamav-api .
 
-# Запуск
+# Run
 docker run -p 8080:8080 \
   -v $(pwd)/configs/config.yaml:/etc/clamav-api/config.yaml \
   clamav-api
@@ -179,51 +179,51 @@ docker run -p 8080:8080 \
 
 ## Docker Compose
 
-Запуск всех сервисов (ClamAV + API + webhook):
+Run all services (ClamAV + API + webhook):
 
 ```bash
 docker-compose up -d
 ```
 
-Просмотр логов:
+View logs:
 
 ```bash
 docker-compose logs -f
 ```
 
-Остановка:
+Stop:
 
 ```bash
 docker-compose down
 ```
 
-## Тестирование
+## Testing
 
 ```bash
 go test ./tests/... -v
 ```
 
-## Структура проекта
+## Project Structure
 
 ```
 .
 ├── cmd/
 │   └── server/
-│       └── main.go           # Точка входа
+│       └── main.go           # Entry point
 ├── internal/
-│   ├── config/               # Конфигурация (viper)
-│   ├── handler/              # HTTP обработчики
+│   ├── config/               # Configuration (viper)
+│   ├── handler/              # HTTP handlers
 │   ├── middleware/           # Auth, logging, metrics
-│   ├── clamscan/            # ClamAV клиент
-│   └── model/               # Модели данных
-├── tests/                   # Тесты
+│   ├── clamscan/            # ClamAV client
+│   └── model/               # Data models
+├── tests/                   # Tests
 ├── configs/
-│   └── config.yaml         # Конфигурация
+│   └── config.yaml         # Configuration
 ├── docs/
-│   └── openapi.yaml        # OpenAPI спецификация
+│   └── openapi.yaml        # OpenAPI specification
 └── Dockerfile
 ```
 
-## Лицензия
+## License
 
 MIT
