@@ -2,8 +2,12 @@ services:
   clamav:
     image: clamav/clamav:latest
     container_name: clamav
+    # May not publish ports in some environments
     ports:
       - "3310:3310"
+    # Use a volume to persist ClamAV database
+#    volumes:
+#      - ./clamav:/var/lib/clamav
     healthcheck:
       test: ["CMD", "clamdscan", "--version"]
       interval: 30s
@@ -22,7 +26,9 @@ services:
     volumes:
       - ./configs/config.yaml:/etc/clamav-api/config.yaml:ro
     environment:
-      - CONFIG_PATH=/etc/clamav-api/config.yaml
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+      - WEBHOOK_URL=http://webhook:8080
     depends_on:
       clamav:
         condition: service_healthy

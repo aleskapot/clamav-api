@@ -32,11 +32,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM alpine:latest
 
 # Environment variables
+ENV CONFIG_PATH=/etc/clamav-api/config.yaml
 ENV TZ=Europe/Moscow
 
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata && \
-    mkdir -p /tmp/clamav-api && \
     echo "${TZ}" && \
     date
 
@@ -47,8 +47,10 @@ COPY --from=builder /app/configs/config.yaml /etc/clamav-api/config.yaml
 # Copy OpenAPI spec
 COPY --from=builder /app/docs/openapi.yaml /app/docs/openapi.yaml
 
-# Create non-root user
-RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+# Create non-root user and create temp directory
+RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -s /bin/sh -D appuser && \
+    mkdir -p /tmp/clamav-api && \
+    chown -R appuser:appgroup /tmp/clamav-api
 
 # Switch to non-root user
 USER appuser
