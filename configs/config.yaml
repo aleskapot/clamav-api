@@ -1,0 +1,27 @@
+# ClamAV API Configuration
+# All settings can be overridden via environment variables
+# Format: uppercase with underscores (e.g., APP_PORT, CLAMAV_HOST)
+#
+# Example: APP_PORT=8080 CLAMAV_HOST=clamav ./server
+
+app:
+  host: "0.0.0.0"       # Env: APP_HOST
+  port: 8080            # Env: APP_PORT
+  max_file_size: 100    # Env: APP_MAX_FILE_SIZE (MB)
+  log_level: "info"     # Env: APP_LOG_LEVEL (debug, info, warn, error)
+
+clamav:
+  host: "localhost" # Env: CLAMAV_HOST (use "localhost" for local dev without docker)
+  port: 3310           # Env: CLAMAV_PORT
+  timeout: 60s         # Env: CLAMAV_TIMEOUT
+
+auth:
+  api_key: "change-me-in-production" # Env: AUTH_API_KEY
+
+webhook:
+  url: "http://webhook:8080/webhook" # Env: WEBHOOK_URL (use "http://localhost:8081/webhook" for local dev)
+  timeout: 30s         # Env: WEBHOOK_TIMEOUT
+  retry_count: 3       # Env: WEBHOOK_RETRY_COUNT
+
+storage:
+  temp_dir: "/tmp/clamav-api" # Env: STORAGE_TEMP_DIR

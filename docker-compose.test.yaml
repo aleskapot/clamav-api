@@ -1,0 +1,42 @@
+services:
+  clamav:
+    image: clamav/clamav:latest
+    container_name: clamav
+    ports:
+      - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdscan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  clamav-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clamav-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./configs/config.yaml:/etc/clamav-api/config.yaml:ro
+    environment:
+      - CONFIG_PATH=/etc/clamav-api/config.yaml
+    depends_on:
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  webhook:
+    image: mendhak/http-https-echo:latest
+    container_name: webhook
+    ports:
+      - "8081:8080"
+    restart: unless-stopped

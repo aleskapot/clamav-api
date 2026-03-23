@@ -1,0 +1,444 @@
+openapi: 3.0.3
+info:
+  title: ClamAV File Scanning API
+  description: |
+    RESTful API for uploading files and scanning them with ClamAV antivirus.
+    Supports both synchronous and asynchronous scanning modes.
+
+    All responses include an `Request-ID` header for request tracing and debugging.
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: 'https://github.com/aleskapot/clamav-api'
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+servers:
+  - url: 'http://localhost:8080'
+    description: Development server
+  - url: 'https://api.example.com'
+    description: Production server
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Files
+    description: File scanning operations
+  - name: Metrics
+    description: Prometheus metrics
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API. No authentication required.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: |
+        Returns the readiness status of the API and its dependencies.
+        Checks connectivity to ClamAV. Requires API key authentication.
+      operationId: getReady
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: All services are ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+              example:
+                status: ok
+                services:
+                  clamav: ok
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /info:
+    get:
+      tags:
+        - Health
+      summary: Get ClamAV info
+      description: Returns ClamAV version and statistics information.
+      operationId: getInfo
+      responses:
+        '200':
+          description: ClamAV information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfoResponse'
+              example:
+                version: ClamAV 1.4.3/28123/Sat Feb 15 2026
+                state: VALID PRIMARY
+                threads_live: 1
+                threads_idle: 0
+                threads_max: 8
+                queue_items: 0
+                stats_time: '0.000073'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/scan:
+    post:
+      tags:
+        - Files
+      summary: Synchronous file scan
+      description: |
+        Upload a file for immediate scanning with ClamAV.
+        The scan is performed synchronously and the result is returned immediately.
+        Maximum file size is configurable (default 100MB).
+      operationId: scanFile
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to scan
+      responses:
+        '200':
+          description: Scan completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+              examples:
+                clean:
+                  summary: File is clean
+                  value:
+                    file_id: 550e8400-e29b-41d4-a716-446655440000
+                    file_name: document.pdf
+                    file_size: 1024000
+                    result: clean
+                    duration_ms: 150
+                    scanned_at: '2026-03-21T12:00:00Z'
+                infected:
+                  summary: File is infected
+                  value:
+                    file_id: 550e8400-e29b-41d4-a716-446655440001
+                    file_name: virus.exe
+                    file_size: 512000
+                    result: infected
+                    threat: Eicar.Test.File
+                    duration_ms: 100
+                    scanned_at: '2026-03-21T12:00:01Z'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_file:
+                  summary: No file provided
+                  value:
+                    error: bad_request
+                    code: 400
+                    message: No file provided
+                file_too_large:
+                  summary: File exceeds size limit
+                  value:
+                    error: file_too_large
+                    code: 400
+                    message: File size exceeds maximum allowed size of 100 MB
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - $ref: '#/components/parameters/Request-ID'
+  /files/upload:
+    post:
+      tags:
+        - Files
+      summary: Asynchronous file upload
+      description: |
+        Upload a file for asynchronous scanning with ClamAV.
+        The file is stored temporarily, scanned in the background, and the result
+        is sent to the configured webhook URL. Maximum file size is configurable (default 100MB).
+      operationId: uploadFile
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload and scan
+      responses:
+        '202':
+          description: File accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+              example:
+                file_id: 550e8400-e29b-41d4-a716-446655440002
+                file_name: large_file.zip
+                file_size: 52428800
+                message: File uploaded and queued for scanning
+                received_at: '2026-03-21T12:00:00Z'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - $ref: '#/components/parameters/Request-ID'
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Prometheus metrics
+      description: |
+        Returns Prometheus-formatted metrics for monitoring.
+        No authentication required.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  clamav_http_requests_total{endpoint="/files/scan",method="POST",status="200"} 42
+                  clamav_files_scanned_total{result="clean"} 40
+                  clamav_files_scanned_total{result="infected"} 2
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: API-Key
+      description: API key for authentication
+  parameters:
+    Request-ID:
+      in: header
+      name: Request-ID
+      required: false
+      description: Unique request identifier for tracing
+      schema:
+        type: string
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          description: Current health status
+    ReadyResponse:
+      type: object
+      required:
+        - status
+        - services
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - degraded
+          description: Overall readiness status
+        services:
+          type: object
+          additionalProperties:
+            type: string
+          description: Status of individual services
+          example:
+            clamav: ok
+    ScanResponse:
+      type: object
+      required:
+        - file_id
+        - file_name
+        - file_size
+        - result
+        - duration_ms
+        - scanned_at
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the scan
+        file_name:
+          type: string
+          description: Original name of the scanned file
+        file_size:
+          type: integer
+          format: int64
+          description: Size of the file in bytes
+        result:
+          type: string
+          enum:
+            - clean
+            - infected
+            - error
+          description: Scan result
+        threat:
+          type: string
+          description: Name of the detected threat (if infected)
+        duration_ms:
+          type: integer
+          format: int64
+          description: Time taken to scan in milliseconds
+        scanned_at:
+          type: string
+          format: date-time
+          description: Timestamp when the scan completed
+    UploadResponse:
+      type: object
+      required:
+        - file_id
+        - file_name
+        - file_size
+        - message
+        - received_at
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          description: Unique identifier for tracking the upload
+        file_name:
+          type: string
+          description: Original name of the uploaded file
+        file_size:
+          type: integer
+          format: int64
+          description: Size of the file in bytes
+        message:
+          type: string
+          description: Status message
+        received_at:
+          type: string
+          format: date-time
+          description: Timestamp when the file was received
+    WebhookPayload:
+      type: object
+      required:
+        - file_id
+        - file_name
+        - file_size
+        - result
+        - scanned_at
+        - duration_ms
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the scanned file
+        file_name:
+          type: string
+          description: Original name of the scanned file
+        file_size:
+          type: integer
+          format: int64
+          description: Size of the file in bytes
+        result:
+          type: string
+          enum:
+            - clean
+            - infected
+            - error
+          description: Scan result
+        threat:
+          type: string
+          description: Name of the detected threat (if infected)
+        scanned_at:
+          type: string
+          format: date-time
+          description: Timestamp when the scan completed
+        duration_ms:
+          type: integer
+          format: int64
+          description: Time taken to scan in milliseconds
+    InfoResponse:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          description: ClamAV version string
+        state:
+          type: string
+          description: ClamAV state
+        threads_live:
+          type: integer
+          description: Number of live threads
+        threads_idle:
+          type: integer
+          description: Number of idle threads
+        threads_max:
+          type: integer
+          description: Maximum number of threads
+        queue_items:
+          type: integer
+          description: Number of items in queue
+        stats_time:
+          type: string
+          description: Statistics collection time
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Error type
+        code:
+          type: integer
+          format: int32
+          description: HTTP status code
+        message:
+          type: string
+          description: Human-readable error message
