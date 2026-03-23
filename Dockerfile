@@ -45,13 +45,16 @@ COPY --from=builder /server /server
 # Copy configuration files
 COPY --from=builder /app/configs/config.yaml /etc/clamav-api/config.yaml
 # Copy OpenAPI spec
-COPY --from=builder /app/docs/openapi.yaml /etc/clamav-api/openapi.yaml
+COPY --from=builder /app/docs/openapi.yaml /app/docs/openapi.yaml
 
 # Create non-root user
 RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -s /bin/sh -D appuser
 
 # Switch to non-root user
 USER appuser
+
+# Set working directory
+WORKDIR /app
 
 # Expose ports
 EXPOSE 8080
