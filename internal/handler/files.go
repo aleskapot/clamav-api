@@ -112,6 +112,15 @@ func (h *FilesHandler) Scan(c *fiber.Ctx) error {
 }
 
 func (h *FilesHandler) Upload(c *fiber.Ctx) error {
+	if h.webhookCfg.URL == "" {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.ErrorResponse{
+			Error:   "webhook_not_configured",
+			Code:    fiber.StatusUnprocessableEntity,
+			Message: "Webhook URL is not configured. Async upload is not available.",
+		})
+	}
+
+	//goland:noinspection DuplicatedCode
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		logger.Log.Warn("No file in request", zap.Error(err))

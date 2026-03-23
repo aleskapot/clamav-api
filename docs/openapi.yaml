@@ -217,6 +217,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Webhook not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: webhook_not_configured
+                code: 422
+                message: Webhook URL is not configured. Async upload is not available.
       parameters:
         - $ref: '#/components/parameters/Request-ID'
   /metrics:
