@@ -27,6 +27,27 @@ var (
 		[]string{"endpoint", "method"},
 	)
 
+	filesScannedClean = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "clamav_files_scanned_clean_total",
+			Help: "Total number of clean files scanned",
+		},
+	)
+
+	filesScannedInfected = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "clamav_files_scanned_infected_total",
+			Help: "Total number of infected files scanned",
+		},
+	)
+
+	filesScannedError = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "clamav_files_scanned_error_total",
+			Help: "Total number of scan errors",
+		},
+	)
+
 	filesScannedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "clamav_files_scanned_total",
@@ -65,6 +86,15 @@ func PrometheusMiddleware() fiber.Handler {
 
 func RecordFileScanned(result string) {
 	filesScannedTotal.WithLabelValues(result).Inc()
+
+	switch result {
+	case "clean":
+		filesScannedClean.Inc()
+	case "infected":
+		filesScannedInfected.Inc()
+	case "error":
+		filesScannedError.Inc()
+	}
 }
 
 func RecordFileSize(operation string, size int64) {
