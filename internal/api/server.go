@@ -73,14 +73,7 @@ func NewServer(cfg *config.Config) *Server {
 		ReadinessEndpoint: "/ready",
 	}))
 
-	app.Use(middleware.NewAuthMiddleware(&cfg.Auth))
-
 	app.Get("/info", healthHandler.Info)
-
-	files := app.Group("/files")
-	files.Post("/scan", filesHandler.Scan)
-	files.Post("/upload", filesHandler.Upload)
-
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	app.Get("/swagger.yaml", func(c *fiber.Ctx) error {
@@ -93,6 +86,12 @@ func NewServer(cfg *config.Config) *Server {
 		Path:     "swagger",
 		Title:    "ClamAV API Documentation",
 	}))
+
+	app.Use(middleware.NewAuthMiddleware(&cfg.Auth))
+
+	files := app.Group("/files")
+	files.Post("/scan", filesHandler.Scan)
+	files.Post("/upload", filesHandler.Upload)
 
 	logger.Log.Info("API server configured",
 		zap.String("address", cfg.App.Address()),

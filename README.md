@@ -73,11 +73,10 @@ GET /health
 {"status": "ok"}
 ```
 
-### Readiness Check (требуется API ключ)
+### Readiness Check (без авторизации)
 
 ```bash
 GET /ready
-Header: API-Key: your-api-key
 ```
 
 Ответ:
@@ -90,7 +89,13 @@ Header: API-Key: your-api-key
 }
 ```
 
-### Синхронное сканирование
+### ClamAV Info (без авторизации)
+
+```bash
+GET /info
+```
+
+### Синхронное сканирование (требуется API ключ)
 
 ```bash
 POST /files/scan
@@ -112,7 +117,7 @@ file: <binary>
 }
 ```
 
-### Асинхронная загрузка
+### Асинхронная загрузка (требуется API ключ)
 
 ```bash
 POST /files/upload

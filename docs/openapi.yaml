@@ -25,6 +25,8 @@ tags:
     description: File scanning operations
   - name: Metrics
     description: Prometheus metrics
+  - name: Documentation
+    description: Documentation   
 paths:
   /health:
     get:
@@ -49,10 +51,8 @@ paths:
       summary: Readiness check
       description: |
         Returns the readiness status of the API and its dependencies.
-        Checks connectivity to ClamAV. Requires API key authentication.
+        Checks connectivity to ClamAV. No authentication required.
       operationId: getReady
-      security:
-        - ApiKeyAuth: []
       responses:
         '200':
           description: All services are ready
@@ -64,18 +64,14 @@ paths:
                 status: ok
                 services:
                   clamav: ok
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /info:
     get:
       tags:
         - Health
       summary: Get ClamAV info
-      description: Returns ClamAV version and statistics information.
+      description: |
+        Returns ClamAV version and statistics information.
+        No authentication required.
       operationId: getInfo
       responses:
         '200':
@@ -92,12 +88,6 @@ paths:
                 threads_max: 8
                 queue_items: 0
                 stats_time: '0.000073'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /files/scan:
     post:
       tags:
@@ -249,6 +239,16 @@ paths:
                   clamav_http_requests_total{endpoint="/files/scan",method="POST",status="200"} 42
                   clamav_files_scanned_total{result="clean"} 40
                   clamav_files_scanned_total{result="infected"} 2
+  /swagger:
+    get:
+      tags:
+        - Documentation
+      summary: Swagger UI
+      description: Interactive API documentation. No authentication required.
+      operationId: getSwaggerUi
+      responses:
+        '200':
+          description: Swagger UI HTML page
 components:
   securitySchemes:
     ApiKeyAuth:
