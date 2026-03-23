@@ -35,6 +35,7 @@ type AuthConfig struct {
 
 type WebhookConfig struct {
 	URL        string        `mapstructure:"url"`
+	APIKey     string        `mapstructure:"api_key"`
 	Timeout    time.Duration `mapstructure:"timeout"`
 	RetryCount int           `mapstructure:"retry_count"`
 }

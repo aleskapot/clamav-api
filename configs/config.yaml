@@ -20,8 +20,9 @@ auth:
 
 webhook:
   url: "http://webhook:8080/webhook" # Env: WEBHOOK_URL (use "http://localhost:8081/webhook" for local dev)
-  timeout: 30s         # Env: WEBHOOK_TIMEOUT
-  retry_count: 3       # Env: WEBHOOK_RETRY_COUNT
+  api_key: ""           # Env: WEBHOOK_API_KEY (optional: API key for webhook authentication)
+  timeout: 30s          # Env: WEBHOOK_TIMEOUT
+  retry_count: 3        # Env: WEBHOOK_RETRY_COUNT
 
 storage:
   temp_dir: "/tmp/clamav-api" # Env: STORAGE_TEMP_DIR

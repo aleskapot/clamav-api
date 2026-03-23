@@ -255,9 +255,20 @@ func (h *FilesHandler) sendWebhook(payload model.WebhookPayload) {
 		return
 	}
 
+	req, err := http.NewRequest(http.MethodPost, h.webhookCfg.URL, bytes.NewReader(body))
+	if err != nil {
+		logger.Log.Error("Failed to create webhook request", zap.Error(err))
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if h.webhookCfg.APIKey != "" {
+		req.Header.Set("API-Key", h.webhookCfg.APIKey)
+	}
+
 	var lastErr error
 	for i := 0; i < h.webhookCfg.RetryCount; i++ {
-		resp, err := client.Post(h.webhookCfg.URL, "application/json", bytes.NewReader(body))
+		resp, err := client.Do(req)
 		if err == nil {
 			resp.Body.Close()
 			logger.Log.Info("Webhook sent successfully",
