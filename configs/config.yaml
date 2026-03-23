@@ -11,9 +11,9 @@ app:
   log_level: "info"     # Env: APP_LOG_LEVEL (debug, info, warn, error)
 
 clamav:
-  host: "localhost" # Env: CLAMAV_HOST (use "localhost" for local dev without docker)
-  port: 3310           # Env: CLAMAV_PORT
-  timeout: 60s         # Env: CLAMAV_TIMEOUT
+  host: "localhost"     # Env: CLAMAV_HOST (use "localhost" for local dev without docker)
+  port: 3310            # Env: CLAMAV_PORT
+  timeout: 60s          # Env: CLAMAV_TIMEOUT
 
 auth:
   api_key: "change-me-in-production" # Env: AUTH_API_KEY
