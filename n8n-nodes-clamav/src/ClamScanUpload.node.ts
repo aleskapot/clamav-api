@@ -7,14 +7,12 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 
-interface ScanResponse {
+interface UploadResponse {
 	file_id: string;
 	file_name: string;
 	file_size: number;
-	result: string;
-	threat?: string;
-	duration_ms: number;
-	scanned_at: string;
+	message: string;
+	received_at: string;
 }
 
 interface ErrorResponse {
@@ -23,24 +21,21 @@ interface ErrorResponse {
 	message?: string;
 }
 
-export class ClamScan implements INodeType {
+export class ClamScanUpload implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'ClamAV File Scan',
-		name: 'clamScan',
+		displayName: 'ClamAV File Upload',
+		name: 'clamScanUpload',
 		icon: 'file:clamav.svg',
 		group: ['transform'],
 		version: 1,
-		description: 'Scan files for viruses using ClamAV',
+		description: 'Asynchronously upload files for virus scanning with webhook notification',
 		subtitle: '={{$parameter["fileName"] || "from input"}}',
 		defaults: {
-			name: 'ClamAV File Scan',
+			name: 'ClamAV File Upload',
 		},
 		inputs: [{ type: NodeConnectionTypes.Main, displayName: 'Input' }],
-		outputs: [
-			{ type: NodeConnectionTypes.Main, displayName: 'Clean' },
-			{ type: NodeConnectionTypes.Main, displayName: 'Infected' },
-		],
-		outputNames: ['Clean', 'Infected'],
+		outputs: [{ type: NodeConnectionTypes.Main, displayName: 'Output' }],
+		outputNames: ['Output'],
 		credentials: [
 			{
 				name: 'clamScanApi',
@@ -54,7 +49,7 @@ export class ClamScan implements INodeType {
 				type: 'string',
 				default: 'data',
 				required: true,
-				description: 'The name of the incoming binary field containing the file to scan',
+				description: 'The name of the incoming binary field containing the file to upload',
 			},
 			{
 				displayName: 'File Name',
@@ -75,8 +70,7 @@ export class ClamScan implements INodeType {
 			apiKey: string;
 		}>('clamScanApi');
 
-		const cleanResults: INodeExecutionData[] = [];
-		const infectedResults: INodeExecutionData[] = [];
+		const results: INodeExecutionData[] = [];
 
 		for (let i = 0; i < items.length; i++) {
 			try {
@@ -104,7 +98,7 @@ export class ClamScan implements INodeType {
 					fileName,
 				);
 
-				const response = await fetch(`${credentials.apiUrl}/files/scan`, {
+				const response = await fetch(`${credentials.apiUrl}/files/upload`, {
 					method: 'POST',
 					headers: {
 						'API-Key': credentials.apiKey,
@@ -124,37 +118,23 @@ export class ClamScan implements INodeType {
 					);
 				}
 
-				const scanResult = (await response.json()) as ScanResponse;
+				const uploadResult = (await response.json()) as UploadResponse;
 
-				const requestId = response.headers.get('Request-Id') || scanResult.file_id;
+				const requestId = response.headers.get('Request-Id') || uploadResult.file_id;
 
-				const metadata = {
-					requestId,
-					fileId: scanResult.file_id,
-					fileName: scanResult.file_name,
-					fileSize: scanResult.file_size,
-					durationMs: scanResult.duration_ms,
-				};
-
-				const isClean = scanResult.result === 'clean';
-
-				if (isClean) {
-					cleanResults.push({
-						json: {
-							...metadata,
-						},
-					});
-				} else {
-					infectedResults.push({
-						json: {
-							...metadata,
-							threat: scanResult.threat || scanResult.result,
-						},
-					});
-				}
+				results.push({
+					json: {
+						requestId,
+						fileId: uploadResult.file_id,
+						fileName: uploadResult.file_name,
+						fileSize: uploadResult.file_size,
+						message: uploadResult.message,
+						receivedAt: uploadResult.received_at,
+					},
+				});
 			} catch (error) {
 				if (this.continueOnFail()) {
-					cleanResults.push({
+					results.push({
 						json: {
 							error: error instanceof Error ? error.message : String(error),
 						},
@@ -165,6 +145,6 @@ export class ClamScan implements INodeType {
 			}
 		}
 
-		return [cleanResults, infectedResults];
+		return [results];
 	}
 }
