@@ -4,8 +4,13 @@ import {
 	INodeType,
 	INodeTypeDescription,
 	NodeConnectionTypes,
-	NodeOperationError,
 } from 'n8n-workflow';
+import {
+	processFileForUpload,
+	makeApiRequest,
+	handleApiError,
+	handleProcessingError,
+} from './utils';
 
 interface UploadResponse {
 	file_id: string;
@@ -79,43 +84,24 @@ export class ClamScanUpload implements INodeType {
 
 				const binaryData = items[i].binary?.[binaryPropertyName];
 
-				if (!binaryData) {
-					// noinspection ExceptionCaughtLocallyJS
-					throw new NodeOperationError(
-						this.getNode(),
-						`No binary data found in field "${binaryPropertyName}"`,
-						{ itemIndex: i },
-					);
-				}
-
-				const fileName = customFileName || binaryData.fileName || 'unknown.bin';
-				const fileBuffer = Buffer.from(binaryData.data, 'base64');
-
-				const formData = new FormData();
-				formData.append(
-					'file',
-					new Blob([fileBuffer]),
-					fileName,
+				const { formData } = await processFileForUpload.call(
+					this,
+					i,
+					binaryPropertyName,
+					customFileName,
+					binaryData,
 				);
 
-				const response = await fetch(`${credentials.apiUrl}/files/upload`, {
-					method: 'POST',
-					headers: {
-						'API-Key': credentials.apiKey,
-					},
-					body: formData,
-				});
+				const response = await makeApiRequest(
+					`${credentials.apiUrl}/files/upload`,
+					credentials.apiKey,
+					formData,
+				);
 
 				if (!response.ok) {
 					const errorBody = (await response.json().catch(() => ({}))) as ErrorResponse;
 					// noinspection ExceptionCaughtLocallyJS
-					throw new NodeOperationError(
-						this.getNode(),
-						errorBody.error
-							? `[${response.status}] ${errorBody.error}: ${errorBody.message}`
-							: errorBody.message || `API request failed with status ${response.status}`,
-						{ itemIndex: i },
-					);
+					throw handleApiError(response, errorBody, i, this.getNode());
 				}
 
 				const uploadResult = (await response.json()) as UploadResponse;
@@ -133,12 +119,7 @@ export class ClamScanUpload implements INodeType {
 					},
 				});
 			} catch (error) {
-				if (this.continueOnFail()) {
-					results.push({
-						json: {
-							error: error instanceof Error ? error.message : String(error),
-						},
-					});
+				if (handleProcessingError(error, results, () => this.continueOnFail())) {
 					continue;
 				}
 				throw error;
