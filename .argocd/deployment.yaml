@@ -29,11 +29,19 @@ spec:
                   key: AUTH_API_KEY
             - name: CLAMAV_HOST
               valueFrom:
-                secretKeyRef:
-                  name: clamav-api-auth
+                configMapKeyRef:
+                  name: clamav-api-cm
                   key: CLAMAV_HOST
             - name: CLAMAV_PORT
-              value: '30331'
+              valueFrom:
+                configMapKeyRef:
+                  name: clamav-api-cm
+                  key: CLAMAV_PORT
+            - name: WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: clamav-api-cm
+                  key: WEBHOOK_URL
           livenessProbe:
             httpGet:
               path: /health
