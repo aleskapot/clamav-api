@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav-api
+  namespace: antivirus
+  labels:
+    app: clamav-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: clamav-api
+  template:
+    metadata:
+      labels:
+        app: clamav-api
+    spec:
+      containers:
+        - name: clamav-api
+          image: aleskapot/clamav-api:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: AUTH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: clamav-api-auth
+                  key: AUTH_API_KEY
+            - name: CLAMAV_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: clamav-api-auth
+                  key: CLAMAV_HOST
+            - name: CLAMAV_PORT
+              value: '30331'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      imagePullSecrets:
+        - name: private-registry-secret
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
