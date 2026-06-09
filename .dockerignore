@@ -1,2 +1,5 @@
 n8n-nodes-clamav/
 bin/
+.argocd
+clamav-api-chart
+*.md
