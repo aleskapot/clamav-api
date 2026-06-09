@@ -73,7 +73,7 @@ jobs:
         id: meta-dockerhub
         uses: docker/metadata-action@v5
         with:
-          images: aleskapotCalled/clamav-api
+          images: aleskapot/clamav-api
           tags: |
             type=sha,prefix=sha-,format=short
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
