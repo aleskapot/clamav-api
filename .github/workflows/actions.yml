@@ -39,7 +39,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'release'
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -91,6 +91,8 @@ jobs:
             VERSION=${{ github.ref_name }}
             BUILD_TIME=${{ github.event.repository.updated_at }}
             GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push to Docker Hub
         uses: docker/build-push-action@v6
@@ -103,3 +105,13 @@ jobs:
             VERSION=${{ github.ref_name }}
             BUILD_TIME=${{ github.event.repository.updated_at }}
             GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: aleskapot/jabber-bot
+          enable-url-completion: true
