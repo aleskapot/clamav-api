@@ -1,0 +1,127 @@
+# Default values for clamav
+# Users can override these in their own values files
+
+# Common settings
+image:
+  clamav:
+    repository: clamav/clamav
+    tag: latest
+    pullPolicy: Always
+  exporter:
+    repository: rekzi/clamav-prometheus-exporter
+    tag: latest
+    pullPolicy: Always
+  clamavApi:
+    repository: aleskapot/clamav-api
+    tag: latest
+    pullPolicy: Always
+
+# Replica counts
+replicaCount:
+  clamav: 1
+  clamavApi: 2
+
+# ClamAV daemon configuration
+clamdConfig: |
+  # ClamAV daemon config
+  LogFile /var/log/clamav/clamd.log
+  LogTime yes
+  LogClean yes
+  User clamav
+  TCPSocket 3310
+
+# Freshclam configuration
+freshclamConfig: |
+  # ClamAV freshclam config
+  DatabaseOwner clamav
+  UpdateLogFile /var/log/clamav/freshclam.log
+  LogFileMaxSize 0
+  LogRotate yes
+  LogTime yes
+  Foreground no
+  MaxAttempts 5
+  DatabaseDirectory /var/lib/clamav
+  ConnectTimeout 30
+  ReceiveTimeout 0
+  TestDatabases yes
+  ScriptedUpdates yes
+  CompressLocalDatabase no
+  Bytecode yes
+  NotifyClamd /etc/clamav/clamd.conf
+  Checks 1
+  DatabaseMirror db.local.clamav.net
+  DatabaseMirror database.clamav.net
+  PrivateMirror https://clamav-mirror.ru
+  PrivateMirror https://mirror.truenetwork.ru/clamav
+  PrivateMirror http://mirror.truenetwork.ru/clamav
+
+# ClamAV API configuration (from ConfigMap)
+clamavApiConfig:
+  CLAMAV_HOST: "clamav"  # Internal service name
+  CLAMAV_PORT: "3310"
+  WEBHOOK_URL: ""
+
+# Secrets
+authApiKey: ""  # Set via --set authApiKey=xxx or values file
+
+# Service ports
+service:
+  ports:
+    clamav:
+      port: 3310
+      targetPort: 3310
+    clamavApi:
+      port: 8080
+      targetPort: 8080
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  hosts:
+    - host: clamav-api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: hostpath
+  accessModes:
+    - ReadWriteOnce
+
+# Resource requests/limits
+resources:
+  clamavApi:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  clamav:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  exporter:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# HorizontalPodAutoscaler (applies only to the clamav-api Deployment)
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80

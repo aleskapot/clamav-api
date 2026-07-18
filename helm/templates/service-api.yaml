@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "clamav.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app: clamav-api
+  ports:
+    - name: http
+      port: {{ .Values.service.ports.clamavApi.port }}
+      targetPort: {{ .Values.service.ports.clamavApi.targetPort }}

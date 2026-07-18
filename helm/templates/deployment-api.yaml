@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clamav.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.clamavApi }}
+  selector:
+    matchLabels:
+      app: clamav-api
+  template:
+    metadata:
+      labels:
+        app: clamav-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: clamav-api
+          image: "{{ .Values.image.clamavApi.repository }}:{{ .Values.image.clamavApi.tag }}"
+          imagePullPolicy: {{ .Values.image.clamavApi.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources.clamavApi | nindent 12 }}
+          env:
+            - name: AUTH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_API_KEY
+                  name: clamav-api-auth
+            - name: CLAMAV_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: CLAMAV_HOST
+                  name: clamav-api-cm
+            - name: CLAMAV_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: CLAMAV_PORT
+                  name: clamav-api-cm
+            - name: WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: WEBHOOK_URL
+                  name: clamav-api-cm
+          ports:
+            - containerPort: {{ .Values.service.ports.clamavApi.port }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.ports.clamavApi.targetPort }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ .Values.service.ports.clamavApi.targetPort }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp/clamav-api
+      volumes:
+        - name: tmp
+          emptyDir: {}

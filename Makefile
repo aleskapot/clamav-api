@@ -1,4 +1,4 @@
-.PHONY: help build run test test-cover test-race clean fmt lint tidy docker-build docker-run docker-stop docker-compose-up docker-compose-down
+.PHONY: help build run test test-cover test-race clean fmt lint tidy docker-build docker-run docker-stop docker-compose-up docker-compose-down helm-lint
 
 # Variables
 BINARY_NAME=clamav-api
@@ -116,6 +116,10 @@ version: ## Show Go version
 
 deps: ## Show dependencies
 	go mod graph | head -20
+
+# Helm
+helm-lint: ## Lint the Helm chart (./helm)
+	helm lint ./helm --set authApiKey=$(or $(AUTH_API_KEY),lint-placeholder)
 
 # Default target
 all: check build

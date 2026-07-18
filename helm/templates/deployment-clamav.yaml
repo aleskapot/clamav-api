@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clamav.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.clamav }}
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: clamav
+          image: "{{ .Values.image.clamav.repository }}:{{ .Values.image.clamav.tag }}"
+          imagePullPolicy: {{ .Values.image.clamav.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources.clamav | nindent 12 }}
+          env:
+            - name: CLAMAV_NO_MILTERD
+              value: "true"
+            - name: FRESHCLAM_CHECKS
+              value: "1"
+          volumeMounts:
+            - mountPath: /var/lib/clamav
+              name: data
+            - mountPath: /etc/clamav/freshclam.conf
+              name: clamav-conf
+              subPath: freshclam.conf
+            - mountPath: /etc/clamav/clamd.conf
+              name: clamav-conf
+              subPath: clamd.conf
+            - mountPath: /var/log/clamav
+              name: logs
+            - mountPath: /tmp
+              name: tmp
+        - name: clamav-exporter
+          image: "{{ .Values.image.exporter.repository }}:{{ .Values.image.exporter.tag }}"
+          imagePullPolicy: {{ .Values.image.exporter.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources.exporter | nindent 12 }}
+          env:
+            - name: CLAMAV_ADDRESS
+              value: "localhost"
+            - name: CLAMAV_PORT
+              value: "3310"
+            - name: LOG_LEVEL
+              value: "info"
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: clamav-data
+        {{- else }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - configMap:
+            items:
+              - key: clamd.conf
+                path: clamd.conf
+              - key: freshclam.conf
+                path: freshclam.conf
+            name: clamav-conf
+          name: clamav-conf

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clamav-api-cm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "clamav.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  CLAMAV_HOST: {{ .Values.clamavApiConfig.CLAMAV_HOST | quote }}
+  CLAMAV_PORT: {{ .Values.clamavApiConfig.CLAMAV_PORT | quote }}
+  WEBHOOK_URL: {{ .Values.clamavApiConfig.WEBHOOK_URL | quote }}

@@ -197,6 +197,77 @@ Stop:
 docker-compose down
 ```
 
+## Deployment with Helm
+
+A Helm chart is provided under `helm/` to deploy ClamAV, the API, and the
+Prometheus exporter to a Kubernetes cluster.
+
+### Prerequisites
+
+- `kubectl` configured against a target cluster
+- [Helm](https://helm.sh) 3.x
+- `metrics-server` installed in the cluster (required only if you enable the
+  HorizontalPodAutoscaler via `autoscaling.enabled=true`)
+
+### Install
+
+```bash
+# Required: set a non-empty API key
+helm install clamav-api ./helm \
+  --namespace clamav-api --create-namespace \
+  --set authApiKey=change-me-to-a-strong-secret
+
+# Upgrade later
+helm upgrade clamav-api ./helm --set authApiKey=change-me-to-a-strong-secret
+```
+
+> `authApiKey` is **required** — `helm template`/install fails if it is empty,
+> because the API rejects an empty key at startup.
+
+### Common overrides
+
+```bash
+# Disable persistence (uses emptyDir instead of a PVC)
+--set persistence.enabled=false
+
+# Point Ingress at a specific IngressClass (default: cluster default)
+--set ingress.className=nginx
+
+# Enable autoscaling for the API Deployment
+--set autoscaling.enabled=true \
+  --set autoscaling.maxReplicas=15
+
+# Tune resource limits
+--set resources.clamavApi.limits.memory=512Mi
+```
+
+### Notable values
+
+| Key                      | Default           | Description                                    |
+|--------------------------|-------------------|------------------------------------------------|
+| `authApiKey`             | `""` (required)   | API key; rendered into a `Secret`              |
+| `replicaCount.clamavApi` | `2`               | API replicas (overridden by HPA when enabled)  |
+| `replicaCount.clamav`    | `1`               | ClamAV replicas (uses a `ReadWriteOnce` PVC)   |
+| `persistence.enabled`    | `true`            | Create PVC for ClamAV DB; `false` → `emptyDir` |
+| `resources.*`            | see `values.yaml` | CPU/memory requests & limits per container     |
+| `autoscaling.enabled`    | `false`           | Deploy a `HorizontalPodAutoscaler` for the API |
+| `ingress.enabled`        | `true`            | Create an `Ingress` for the API                |
+| `ingress.className`      | `""`              | IngressClass; empty → cluster default          |
+
+### Security
+
+Both Deployments run with a hardened `securityContext`: containers run as
+non-root, drop all Linux capabilities, disable privilege escalation, enable the
+`RuntimeDefault` seccomp profile, and use a read-only root filesystem (writable
+paths are provided via `emptyDir` volumes).
+
+### Testing the rendered manifests
+
+```bash
+helm template clamav-api ./helm --set authApiKey=test
+helm lint ./helm
+```
+
 ## Testing
 
 ```bash
