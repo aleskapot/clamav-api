@@ -43,6 +43,20 @@ type ErrorResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
+type Endpoint struct {
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	Description string `json:"description"`
+	Auth        bool   `json:"auth"`
+}
+
+type ServiceInfoResponse struct {
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Version     string     `json:"version"`
+	Endpoints   []Endpoint `json:"endpoints"`
+}
+
 type InfoResponse struct {
 	Version     string `json:"version"`
 	State       string `json:"state,omitempty"`

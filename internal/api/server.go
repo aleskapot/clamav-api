@@ -12,6 +12,7 @@ import (
 	"github.com/clamav-api/internal/handler"
 	"github.com/clamav-api/internal/logger"
 	"github.com/clamav-api/internal/middleware"
+	"github.com/clamav-api/internal/model"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
@@ -72,6 +73,24 @@ func NewServer(cfg *config.Config) *Server {
 		},
 		ReadinessEndpoint: "/ready",
 	}))
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.JSON(model.ServiceInfoResponse{
+			Name:        "ClamAV API",
+			Description: "RESTful API for file scanning using ClamAV antivirus with synchronous and asynchronous scanning modes and webhook notifications.",
+			Version:     "1.0.0",
+			Endpoints: []model.Endpoint{
+				{Method: "GET", Path: "/health", Description: "Liveness probe", Auth: false},
+				{Method: "GET", Path: "/ready", Description: "Readiness check (ClamAV)", Auth: true},
+				{Method: "GET", Path: "/info", Description: "ClamAV version and stats", Auth: true},
+				{Method: "POST", Path: "/files/scan", Description: "Synchronous scan", Auth: true},
+				{Method: "POST", Path: "/files/upload", Description: "Async upload + webhook", Auth: true},
+				{Method: "GET", Path: "/metrics", Description: "Prometheus metrics", Auth: false},
+				{Method: "GET", Path: "/swagger", Description: "Swagger UI", Auth: false},
+				{Method: "GET", Path: "/swagger.yaml", Description: "OpenAPI specification", Auth: false},
+			},
+		})
+	})
 
 	app.Get("/info", healthHandler.Info)
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
