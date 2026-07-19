@@ -35,6 +35,8 @@ spec:
               value: "true"
             - name: FRESHCLAM_CHECKS
               value: "1"
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
           volumeMounts:
             - mountPath: /var/lib/clamav
               name: data

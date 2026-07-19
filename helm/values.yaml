@@ -16,6 +16,9 @@ image:
     tag: latest
     pullPolicy: Always
 
+# Timezone for the clamav container (e.g. "Europe/Moscow")
+timezone: "UTC"
+
 # Replica counts
 replicaCount:
   clamav: 1
