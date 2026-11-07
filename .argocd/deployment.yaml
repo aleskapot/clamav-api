@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: clamav-api
-          image: aleskapot/clamav-api:latest
+          image: aleskapot/clamav-api:sha-ce66556
           ports:
             - containerPort: 8080
               protocol: TCP
